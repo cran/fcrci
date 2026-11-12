@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>FDR-consistent confidence intervals for emmeans contrasts</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">FDR-consistent confidence intervals for
+emmeans contrasts</h1>
+
+
+
+<div id="the-problem" class="section level2">
+<h2>The problem</h2>
+<p>Adjusting p-values for the false discovery rate (FDR) with the
+Benjamini-Hochberg procedure is common when many comparisons are made.
+In ‘emmeans’, this is done with <code>adjust = &quot;fdr&quot;</code>. However,
+FDR adjustments are defined for tests, not for confidence intervals, so
+<code>confint()</code> replaces them with a Bonferroni adjustment. The
+intervals are then more conservative than the p-values, and the two can
+lead to different conclusions.</p>
+<p>Consider the <code>chickwts</code> data (base R): chick weights after
+six weeks on six feed supplements, giving 15 pairwise comparisons.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(fcrci)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(emmeans)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="co">#&gt; Warning: package &#39;emmeans&#39; was built under R version 4.4.3</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co">#&gt; Welcome to emmeans.</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="co">#&gt; Caution: You lose important information if you filter this package&#39;s results.</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">#&gt; See &#39;? untidy&#39;</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(weight <span class="sc">~</span> feed, <span class="at">data =</span> chickwts)</span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>prs <span class="ot">&lt;-</span> <span class="fu">pairs</span>(<span class="fu">emmeans</span>(fit, <span class="sc">~</span> feed), <span class="at">adjust =</span> <span class="st">&quot;fdr&quot;</span>)</span></code></pre></div>
+<p>The FDR-adjusted p-values:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">test</span>(prs)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt;  contrast              estimate   SE df t.ratio p.value</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt;  casein - horsebean      163.38 23.5 65   6.957  &lt;.0001</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#&gt;  casein - linseed        104.83 22.4 65   4.682  &lt;.0001</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#&gt;  casein - meatmeal        46.67 22.9 65   2.039  0.0570</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="co">#&gt;  casein - soybean         77.15 21.6 65   3.576  0.0012</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="co">#&gt;  casein - sunflower       -5.33 22.4 65  -0.238  0.8125</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="co">#&gt;  horsebean - linseed     -58.55 23.5 65  -2.493  0.0228</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="co">#&gt;  horsebean - meatmeal   -116.71 24.0 65  -4.870  &lt;.0001</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="co">#&gt;  horsebean - soybean     -86.23 22.7 65  -3.797  0.0007</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#&gt;  horsebean - sunflower  -168.72 23.5 65  -7.184  &lt;.0001</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="co">#&gt;  linseed - meatmeal      -58.16 22.9 65  -2.540  0.0225</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="co">#&gt;  linseed - soybean       -27.68 21.6 65  -1.283  0.2187</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co">#&gt;  linseed - sunflower    -110.17 22.4 65  -4.920  &lt;.0001</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;  meatmeal - soybean       30.48 22.1 65   1.379  0.1991</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;  meatmeal - sunflower    -52.01 22.9 65  -2.271  0.0360</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="co">#&gt;  soybean - sunflower     -82.49 21.6 65  -3.823  0.0007</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a><span class="co">#&gt; P value adjustment: fdr method for 15 tests</span></span></code></pre></div>
+<p>And the confidence intervals of the same contrasts:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">confint</span>(prs)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt;  contrast              estimate   SE df lower.CL upper.CL</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt;  casein - horsebean      163.38 23.5 65     91.8    235.0</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;  casein - linseed        104.83 22.4 65     36.6    173.1</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;  casein - meatmeal        46.67 22.9 65    -23.1    116.5</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;  casein - soybean         77.15 21.6 65     11.4    142.9</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;  casein - sunflower       -5.33 22.4 65    -73.6     62.9</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;  horsebean - linseed     -58.55 23.5 65   -130.1     13.0</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;  horsebean - meatmeal   -116.71 24.0 65   -189.7    -43.7</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;  horsebean - soybean     -86.23 22.7 65   -155.4    -17.0</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;  horsebean - sunflower  -168.72 23.5 65   -240.3    -97.1</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;  linseed - meatmeal      -58.16 22.9 65   -127.9     11.6</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;  linseed - soybean       -27.68 21.6 65    -93.4     38.1</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;  linseed - sunflower    -110.17 22.4 65   -178.4    -41.9</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;  meatmeal - soybean       30.48 22.1 65    -36.9     97.8</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;  meatmeal - sunflower    -52.01 22.9 65   -121.8     17.8</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;  soybean - sunflower     -82.49 21.6 65   -148.2    -16.7</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a><span class="co">#&gt; Confidence level used: 0.95 </span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a><span class="co">#&gt; Conf-level adjustment: bonferroni method for 15 estimates</span></span></code></pre></div>
+<p>Note the footer: the intervals were adjusted with the Bonferroni
+method, the only indication that the requested FDR adjustment was not
+applied to them. For example, <code>horsebean - linseed</code> has an
+FDR-adjusted p-value of about 0.023, yet its interval includes zero. A
+reader comparing the two tables would not know whether that difference
+is significant.</p>
+</div>
+<div id="fcr-adjusted-intervals" class="section level2">
+<h2>FCR-adjusted intervals</h2>
+<p>Benjamini and Yekutieli (2005) defined the false coverage-statement
+rate (FCR), the interval counterpart of the FDR: the expected proportion
+of intervals that fail to cover their parameter among the intervals
+reported for the selected (significant) parameters. They showed that if
+<span class="math inline">\(R\)</span> of <span class="math inline">\(m\)</span> hypotheses are rejected by the
+Benjamini-Hochberg procedure at level <span class="math inline">\(q\)</span>, constructing marginal intervals at
+confidence level</p>
+<p><span class="math display">\[1 - \frac{R\,q}{m}\]</span></p>
+<p>controls the FCR at level <span class="math inline">\(q\)</span> when
+the test statistics are independent. Since the procedure rejects exactly
+the hypotheses with <span class="math inline">\(p_i \le Rq/m\)</span>,
+these intervals exclude the null value exactly for the rejected
+hypotheses.</p>
+<p><code>confint_fcr()</code> applies this adjustment to an ‘emmeans’
+object, reading the FDR method from the <code>adjust</code> setting used
+to create it:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>res <span class="ot">&lt;-</span> <span class="fu">confint_fcr</span>(prs)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>res</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt;  contrast              estimate   SE df lower.CL upper.CL t.ratio p.value</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#&gt;  casein - horsebean      163.38 23.5 65   113.28   213.49   6.957  &lt;.0001</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#&gt;  casein - linseed        104.83 22.4 65    57.06   152.61   4.682  &lt;.0001</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#&gt;  casein - meatmeal        46.67 22.9 65    -2.17    95.52   2.039  0.0570</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#&gt;  casein - soybean         77.15 21.6 65    31.12   123.19   3.576  0.0012</span></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt;  casein - sunflower       -5.33 22.4 65   -53.11    42.44  -0.238  0.8125</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt;  horsebean - linseed     -58.55 23.5 65  -108.66    -8.44  -2.493  0.0228</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt;  horsebean - meatmeal   -116.71 24.0 65  -167.84   -65.58  -4.870  &lt;.0001</span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt;  horsebean - soybean     -86.23 22.7 65  -134.68   -37.78  -3.797  0.0007</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt;  horsebean - sunflower  -168.72 23.5 65  -218.82  -118.61  -7.184  &lt;.0001</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt;  linseed - meatmeal      -58.16 22.9 65  -107.01    -9.31  -2.540  0.0225</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt;  linseed - soybean       -27.68 21.6 65   -73.71    18.36  -1.283  0.2187</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt;  linseed - sunflower    -110.17 22.4 65  -157.94   -62.39  -4.920  &lt;.0001</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt;  meatmeal - soybean       30.48 22.1 65   -16.67    77.63   1.379  0.1991</span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt;  meatmeal - sunflower    -52.01 22.9 65  -100.85    -3.16  -2.271  0.0360</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt;  soybean - sunflower     -82.49 21.6 65  -128.52   -36.45  -3.823  0.0007</span></span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="co">#&gt; Confidence level used: 0.9633 </span></span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="co">#&gt; Conf-level adjustment: FCR (Benjamini &amp; Yekutieli, 2005), q = 0.05 </span></span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="co">#&gt; P value adjustment: fdr (Benjamini-Hochberg) method for 15 tests</span></span></code></pre></div>
+<p>Now <code>horsebean - linseed</code> has an interval that excludes
+zero, matching its p-value, and <code>casein - meatmeal</code>
+(FDR-adjusted p = 0.057) has an interval that includes zero. The footer
+reports the confidence level used, <span class="math inline">\(1 - 11
+\times
+0.05 / 15 \approx 0.963\)</span>. The details are available with
+<code>fcr_info()</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">fcr_info</span>(res)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt;   family  m  R     level</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; 1    all 15 11 0.9633333</span></span></code></pre></div>
+<p>Because the intervals are computed by ‘emmeans’ itself (with
+<code>adjust = &quot;none&quot;</code> and the FCR level), degrees of freedom,
+back-transformations and one-sided intervals behave exactly as in
+‘emmeans’. The common shortcut
+<code>emmeans(fit, pairwise ~ feed, adjust = &quot;fdr&quot;)</code> also works:
+<code>confint_fcr()</code> then uses its <code>contrasts</code>
+component.</p>
+</div>
+<div id="ratios-and-families-defined-by-by-variables" class="section level2">
+<h2>Ratios and families defined by <code>by</code> variables</h2>
+<p>The <code>pigs</code> data from ‘emmeans’ records the concentration
+of leucine in pigs fed three protein sources at four protein
+percentages. On the log scale, differences become ratios after
+back-transformation. Here each percentage is a separate family of three
+comparisons, as in ‘emmeans’:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>fit2 <span class="ot">&lt;-</span> <span class="fu">lm</span>(<span class="fu">log</span>(conc) <span class="sc">~</span> source <span class="sc">*</span> <span class="fu">factor</span>(percent), <span class="at">data =</span> pigs)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>prs2 <span class="ot">&lt;-</span> <span class="fu">pairs</span>(<span class="fu">emmeans</span>(fit2, <span class="sc">~</span> source <span class="sc">|</span> percent), <span class="at">adjust =</span> <span class="st">&quot;fdr&quot;</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>res2 <span class="ot">&lt;-</span> <span class="fu">confint_fcr</span>(prs2, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>res2</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="co">#&gt; percent = 9:</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="co">#&gt;  contrast    ratio     SE df lower.CL upper.CL null t.ratio p.value</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="co">#&gt;  fish / soy  0.746 0.0792 17    0.583    0.954    1  -2.763  0.0200</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="co">#&gt;  fish / skim 0.730 0.0774 17    0.571    0.933    1  -2.971  0.0200</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="co">#&gt;  soy / skim  0.978 0.0929 17    0.785    1.219    1  -0.233  0.8188</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="co">#&gt; percent = 12:</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="co">#&gt;  contrast    ratio     SE df lower.CL upper.CL null t.ratio p.value</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co">#&gt;  fish / soy  0.779 0.0740 17    0.625    0.971    1  -2.629  0.0264</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co">#&gt;  fish / skim 0.716 0.0679 17    0.574    0.891    1  -3.526  0.0078</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="co">#&gt;  soy / skim  0.918 0.0872 17    0.737    1.144    1  -0.898  0.3818</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="co">#&gt; percent = 15:</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="co">#&gt;  contrast    ratio     SE df lower.CL upper.CL null t.ratio p.value</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="co">#&gt;  fish / soy  0.791 0.0839 17    0.632    0.989    1  -2.212  0.0409</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="co">#&gt;  fish / skim 0.625 0.0727 17    0.489    0.799    1  -4.043  0.0025</span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="co">#&gt;  soy / skim  0.790 0.0839 17    0.632    0.989    1  -2.216  0.0409</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="co">#&gt; percent = 18:</span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="co">#&gt;  contrast    ratio     SE df lower.CL upper.CL null t.ratio p.value</span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="co">#&gt;  fish / soy  0.753 0.1010 17    0.527    1.076    1  -2.112  0.0594</span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="co">#&gt;  fish / skim 0.540 0.0725 17    0.378    0.772    1  -4.587  0.0008</span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="co">#&gt;  soy / skim  0.717 0.1180 17    0.464    1.110    1  -2.020  0.0594</span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="co">#&gt; Confidence level used per family: </span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="co">#&gt;   percent = 9: 0.9667 </span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="co">#&gt;   percent = 12: 0.9667 </span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="co">#&gt;   percent = 15: 0.95 </span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="co">#&gt;   percent = 18: 0.9833 </span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="co">#&gt; Conf-level adjustment: FCR (Benjamini &amp; Yekutieli, 2005), q = 0.05 </span></span>
+<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="co">#&gt; P value adjustment: fdr (Benjamini-Hochberg) method for 3 tests </span></span>
+<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a><span class="co">#&gt; Intervals are back-transformed from the log scale </span></span>
+<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a><span class="co">#&gt; Tests are performed on the log scale</span></span></code></pre></div>
+<p>Each family receives its own confidence level, depending on how many
+of its hypotheses were rejected. An interval for a ratio excludes 1
+exactly when the FDR-adjusted p-value is at most 0.05. When a family has
+no rejections, the level is computed with <span class="math inline">\(R
+= 1\)</span> (the Bonferroni level), so that no interval excludes the
+null value. Benjamini and Yekutieli construct no intervals in that case;
+this fallback is a convention of the package that keeps the table
+complete.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">fcr_info</span>(res2)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="co">#&gt;         family m R     level</span></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; 1  percent = 9 3 2 0.9666667</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; 2 percent = 12 3 2 0.9666667</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; 3 percent = 15 3 3 0.9500000</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; 4 percent = 18 3 1 0.9833333</span></span></code></pre></div>
+<p>To treat all 12 comparisons as a single family, use
+<code>by = NULL</code>, as you would in <code>summary()</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">fcr_info</span>(<span class="fu">confint_fcr</span>(prs2, <span class="at">type =</span> <span class="st">&quot;response&quot;</span>, <span class="at">by =</span> <span class="cn">NULL</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt;   family  m R level</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; 1    all 12 6 0.975</span></span></code></pre></div>
+</div>
+<div id="dependent-contrasts-the-benjamini-yekutieli-version" class="section level2">
+<h2>Dependent contrasts: the Benjamini-Yekutieli version</h2>
+<p>The FCR guarantee of Benjamini and Yekutieli (2005) for the level
+above assumes independent test statistics. Contrasts estimated from the
+same model are usually correlated, and t statistics that share a
+variance estimate are dependent even when the estimates are not. If a
+guarantee under any dependence structure is required, use the
+Benjamini-Yekutieli procedure, either through <code>adjust = &quot;BY&quot;</code>
+in ‘emmeans’ or with <code>method = &quot;BY&quot;</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">fcr_info</span>(<span class="fu">confint_fcr</span>(prs, <span class="at">method =</span> <span class="st">&quot;BY&quot;</span>))</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co">#&gt;   family  m R     level</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co">#&gt; 1    all 15 8 0.9919636</span></span></code></pre></div>
+<p>The level now includes the factor <span class="math inline">\(\sum_{i=1}^{m} 1/i\)</span>, which makes both the
+p-values and the intervals more conservative. The intervals and p-values
+still agree with each other.</p>
+</div>
+<div id="what-the-intervals-mean" class="section level2">
+<h2>What the intervals mean</h2>
+<ul>
+<li>For the significant contrasts, the intervals control the FCR (on
+average, at most a proportion <span class="math inline">\(q\)</span> of
+them fail to cover the true value) when the test statistics are
+independent (<code>&quot;BH&quot;</code>) or under any dependence
+(<code>&quot;BY&quot;</code>). For correlated contrasts with <code>&quot;BH&quot;</code>,
+this is not a formal guarantee.</li>
+<li>Intervals are also shown for the non-significant contrasts, so that
+the table is complete and consistent with the p-values. The FCR
+criterion makes no coverage statement about these intervals.</li>
+<li>A single, unadjusted 95% interval should not be read from this
+table; use <code>confint(prs, adjust = &quot;none&quot;)</code> for that.</li>
+</ul>
+</div>
+<div id="using-the-level-elsewhere" class="section level2">
+<h2>Using the level elsewhere</h2>
+<p><code>fcr_level()</code> works with any vector of p-values, so the
+same adjustment can be applied to results from other packages, as long
+as the intervals and p-values are based on the same test statistic:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.0004</span>, <span class="fl">0.003</span>, <span class="fl">0.012</span>, <span class="fl">0.04</span>, <span class="fl">0.21</span>, <span class="fl">0.67</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">fcr_level</span>(p, <span class="at">q =</span> <span class="fl">0.05</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; [1] 0.975</span></span></code></pre></div>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Benjamini, Y. and Hochberg, Y. (1995). Controlling the false
+discovery rate: a practical and powerful approach to multiple testing.
+<em>Journal of the Royal Statistical Society: Series B</em>, 57(1),
+289-300. <a href="https://doi.org/10.1111/j.2517-6161.1995.tb02031.x" class="uri">https://doi.org/10.1111/j.2517-6161.1995.tb02031.x</a></p>
+<p>Benjamini, Y. and Yekutieli, D. (2005). False discovery rate-adjusted
+multiple confidence intervals for selected parameters. <em>Journal of
+the American Statistical Association</em>, 100(469), 71-81. <a href="https://doi.org/10.1198/016214504000001907" class="uri">https://doi.org/10.1198/016214504000001907</a></p>
+<p>Jung, K., Friede, T. and Beissbarth, T. (2011). Reporting FDR
+analogous confidence intervals for the log fold change of differentially
+expressed genes. <em>BMC Bioinformatics</em>, 12, 288. <a href="https://doi.org/10.1186/1471-2105-12-288" class="uri">https://doi.org/10.1186/1471-2105-12-288</a></p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
